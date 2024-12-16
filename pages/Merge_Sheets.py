@@ -119,26 +119,49 @@ if uploaded_file:
                 df_a1 = st.session_state.dfs[st.session_state.selected_sheets[0]]
                 df_a2 = st.session_state.dfs[st.session_state.selected_sheets[1]]
 
+                # Ensure unique columns in df_a1 and df_a2 before proceeding
+                df_a1 = df_a1.loc[:, ~df_a1.columns.duplicated()].copy()
+                df_a2 = df_a2.loc[:, ~df_a2.columns.duplicated()].copy()
+
                 # Map columns
                 st.write("### Map Columns:")
                 mappings = {}
+
                 for col in df_a1.columns:
-                    options = [None] + list(df_a2.columns)
-                    default_index = options.index(col) if col in df_a2.columns else 0
-                    selected_column = st.selectbox(
-                        f"Map `{col}` to",
-                        options,
-                        index=default_index,
-                        key=f"{col}_a2"
-                    )
-                    if selected_column:
-                        mappings[col] = selected_column
+                    if col in df_a2.columns:
+                        # Automatically map the column
+                        mappings[col] = col
+                        st.success(f"**`{col}`** automatically mapped to **`{col}`** from df_a2.")
+                    else:
+                        st.warning(f"**`{col}`** does not exist in df_a2. Please select a column to map.")
+                        selected_column = st.selectbox(
+                            f"Map `{col}` to a column in df_a2:",
+                            [None] + list(df_a2.columns),
+                            key=f"{col}_a2"
+                        )
+                        if selected_column:
+                            mappings[col] = selected_column
+
+                # Check if mapping leads to duplicates
+                if len(set(mappings.values())) < len(mappings.values()):
+                    st.error(
+                        "Your mappings produce duplicate column names. Please ensure each df_a1 column maps to a unique df_a2 column.")
+                    st.stop()
 
                 if st.button("Append the second Sheets"):
                     # Perform the merge
                     merged_df = df_a1.copy()
                     df_a2_subset = df_a2[list(mappings.values())].copy()
+
+                    # Rename columns
                     df_a2_subset.rename(columns={v: k for k, v in mappings.items()}, inplace=True)
+
+                    # Check for duplicates again after renaming
+                    if df_a2_subset.columns.duplicated().any():
+                        st.error("Renaming resulted in duplicate columns. Please revise your mappings.")
+                        st.stop()
+
+                    # Concatenate
                     merged_df = pd.concat([merged_df, df_a2_subset], ignore_index=True)
 
                     # Remove the merged sheets from session_state and add the new merged sheet
