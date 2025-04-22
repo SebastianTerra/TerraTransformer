@@ -20,6 +20,20 @@ if file:
     # make the first row the header
     pd_file.columns = pd_file.iloc[0].astype(str).str.strip()
     pd_file = pd_file[1:]
+    
+    # Process person names to remove job titles after "-"
+    # First, try to find the Employee Name column if it exists
+    employee_name_col = None
+    if 'Employee Name' in pd_file.columns:
+        employee_name_col = 'Employee Name'
+    # If not found by name, use the 4th column (index 3) as a fallback
+    elif len(pd_file.columns) > 3:
+        employee_name_col = pd_file.columns[3]
+        
+    if employee_name_col:
+        # Remove everything after "-" in the employee name column (handling both with and without space)
+        pd_file[employee_name_col] = pd_file[employee_name_col].astype(str).apply(
+            lambda x: x.split(' -')[0] if ' -' in x else (x.split('-')[0] if '-' in x else x))
 
     file_extracted = convert_df(pd_file)
     st.download_button(

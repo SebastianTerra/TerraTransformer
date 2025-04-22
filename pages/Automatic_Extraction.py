@@ -9,9 +9,13 @@ file = st.file_uploader('Please Select the File To Transform', type=['xlsx', 'xl
 
 if file:
     pd_file = display_file(file)
-
-
-    pd_file.iloc[:, 3] = pd_file.iloc[:, 3].ffill()
+    
+    # Check if pd_file is None before proceeding
+    if pd_file is None:
+        st.error("Error: Could not load the file. Please check the file format.")
+    else:
+        # Continue with data processing
+        pd_file.iloc[:, 3] = pd_file.iloc[:, 3].ffill()
 
     # Ensure column 0 is string if datetime
     if pd.api.types.is_datetime64_any_dtype(pd_file.iloc[:, 0]):
@@ -49,6 +53,20 @@ if file:
     # Convert column names and index to strings
     pd_file.columns = pd_file.columns.map(str)
     pd_file.index = pd_file.index.map(str)
+    
+    # Process person names to remove job titles after "-"
+    # First, try to find the Employee Name column if it exists
+    employee_name_col = None
+    if 'Employee Name' in pd_file.columns:
+        employee_name_col = 'Employee Name'
+    # If not found by name, use the 4th column (index 3) as a fallback
+    elif len(pd_file.columns) > 3:
+        employee_name_col = pd_file.columns[3]
+        
+    if employee_name_col:
+        # Remove everything after "-" in the employee name column (handling both with and without space)
+        pd_file[employee_name_col] = pd_file[employee_name_col].astype(str).apply(
+            lambda x: x.split(' -')[0] if ' -' in x else (x.split('-')[0] if '-' in x else x))
 
     # Ensure we have a clean DataFrame
     pd_file = pd_file.reset_index(drop=True)
@@ -78,8 +96,11 @@ if file:
     # Define the numeric columns
     numeric_columns = ["ST", "OT", "DT", "Other", "Holiday", "VA", "SDO", "Jury/Mil", "Totals"]
 
-    # Convert the specified columns to float
-    pd_file[numeric_columns] = pd_file[numeric_columns].apply(pd.to_numeric, errors="coerce")
+    # Convert the specified columns to float, replacing empty strings with NaN
+    for col in numeric_columns:
+        # Replace empty strings with 0 before converting to numeric
+        pd_file[col] = pd_file[col].replace('', '0')
+        pd_file[col] = pd.to_numeric(pd_file[col], errors="coerce")
 
     # Create the final summary row
     summary_row = {col: "" for col in pd_file.columns}

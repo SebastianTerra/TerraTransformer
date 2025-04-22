@@ -10,9 +10,13 @@ file = st.file_uploader('Please Select the File To Transform', type=['xlsx', 'xl
 if file:
     pd_file = display_file(file)
 
-    # Ensure column 0 is string if datetime
-    if pd.api.types.is_datetime64_any_dtype(pd_file.iloc[:, 0]):
-        pd_file.iloc[:, 0] = pd_file.iloc[:, 0].astype(str)
+    # Check if pd_file is None before proceeding
+    if pd_file is None:
+        st.error("Error: Could not load the file. Please check the file format.")
+    else:
+        # Ensure column 0 is string if datetime
+        if pd.api.types.is_datetime64_any_dtype(pd_file.iloc[:, 0]):
+            pd_file.iloc[:, 0] = pd_file.iloc[:, 0].astype(str)
 
     # Forward fill the first column
     pd_file.iloc[:, 0] = pd_file.iloc[:, 0].ffill()
@@ -40,6 +44,13 @@ if file:
     # Convert column names and index to strings
     pd_file.columns = pd_file.columns.map(str)
     pd_file.index = pd_file.index.map(str)
+    
+    # Process person names in column d (4th column) to remove job titles after "-"
+    if len(pd_file.columns) > 3:  # Make sure we have enough columns
+        # Get the name of the 4th column (column d)
+        col_d_name = pd_file.columns[3]
+        # Remove everything after "-" in the person name column (handling both with and without space)
+        pd_file[col_d_name] = pd_file[col_d_name].astype(str).apply(lambda x: x.split(' -')[0] if ' -' in x else (x.split('-')[0] if '-' in x else x))
 
     # Ensure we have a clean DataFrame
     pd_file = pd_file.reset_index(drop=True)
