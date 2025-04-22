@@ -9,14 +9,11 @@ file = st.file_uploader('Please Select the File To Transform', type=['xlsx', 'xl
 
 if file:
     pd_file = display_file(file)
-
+    
     # Check if pd_file is None before proceeding
     if pd_file is None:
         st.error("Error: Could not load the file. Please check the file format.")
     else:
-        # Convert early to string to avoid Arrow conversion issues
-        pd_file = pd_file.astype(str)
-
         # Continue with data processing
         pd_file.iloc[:, 3] = pd_file.iloc[:, 3].ffill()
 
