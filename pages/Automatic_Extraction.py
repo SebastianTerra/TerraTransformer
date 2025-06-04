@@ -30,8 +30,9 @@ if file:
     pd_file = pd_file[pd_file.iloc[:, 11] != "Employee Total"]
 
 
-    # Forward fill row 4 horizontally
-    pd_file.loc[4] = pd_file.loc[4].ffill(axis=0)
+    # Forward fill row 4 horizontally if it exists
+    if len(pd_file.index) > 4:
+        pd_file.loc[4] = pd_file.loc[4].ffill(axis=0)
 
     # Drop rows where the column at position 2 is NaN
     pd_file = pd_file[pd_file.iloc[:, 11] != "nan"]
@@ -43,9 +44,13 @@ if file:
     # Drop rows with null in column index 2
     pd_file = pd_file.dropna(subset=[pd_file.columns[2]])
 
-    # Set the first row as header
-    pd_file.columns = pd_file.iloc[0].astype(str).str.strip()
-    pd_file = pd_file[1:]
+    # Set the first row as header if the DataFrame isn't empty
+    if not pd_file.empty:
+        pd_file.columns = pd_file.iloc[0].astype(str).str.strip()
+        pd_file = pd_file[1:]
+    else:
+        st.error("File format issue: no rows remain after cleaning.")
+        st.stop()
 
     # Convert entire DataFrame to strings
     pd_file = pd_file.astype(str)
