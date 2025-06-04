@@ -8,6 +8,10 @@ def display_file(uploaded_file):
     try:
         df = pd.read_excel(uploaded_file)
 
+        # Convert all columns to strings so Streamlit's Arrow backend doesn't
+        # raise type conversion errors when displaying mixed types
+        df = df.astype(str)
+
         # Display the head of the DataFrame
         st.write("Here is the preview of the file:")
         st.write(df)
