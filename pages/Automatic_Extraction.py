@@ -9,11 +9,14 @@ file = st.file_uploader('Please Select the File To Transform', type=['xlsx', 'xl
 
 if file:
     pd_file = display_file(file)
-    
+
     # Check if pd_file is None before proceeding
     if pd_file is None:
         st.error("Error: Could not load the file. Please check the file format.")
     else:
+        # Convert early to string to avoid Arrow conversion issues
+        pd_file = pd_file.astype(str)
+
         # Continue with data processing
         pd_file.iloc[:, 3] = pd_file.iloc[:, 3].ffill()
 
@@ -32,7 +35,7 @@ if file:
 
     # Forward fill row 4 horizontally if it exists
     if len(pd_file.index) > 4:
-        pd_file.loc[4] = pd_file.loc[4].ffill(axis=0)
+        pd_file.loc[4] = pd_file.loc[4].astype(str).ffill(axis=0)
 
     # Drop rows where the column at position 2 is NaN
     pd_file = pd_file[pd_file.iloc[:, 11] != "nan"]
@@ -76,7 +79,6 @@ if file:
     # Ensure we have a clean DataFrame
     pd_file = pd_file.reset_index(drop=True)
     pd_file.columns = [str(col) for col in pd_file.columns]
-    pd_file = pd_file.convert_dtypes().astype(str)
 
     # Calculate totals for ST and Totals
     if "ST" in pd_file.columns:
